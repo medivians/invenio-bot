@@ -12,15 +12,31 @@ import (
 
 const token = "TOKEN_BOT"
 
-type mediviaCli interface {
+type whoisCli interface {
 	WhoIs(n string) (*medivia.Character, error)
 }
 
-func Start(medCli mediviaCli) (*discordgo.Session, error) {
+type killListCli interface {
+	KillList(n string) (medivia.KillList, error)
+}
+
+func Start(whoisCli whoisCli, killList killListCli) (*discordgo.Session, error) {
 	appCommands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "who-is",
 			Description: "returns informations about player name informed",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "player-name",
+					Description: "Player name",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "kill-list",
+			Description: "returns list of players killed by informed player",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -42,7 +58,7 @@ func Start(medCli mediviaCli) (*discordgo.Session, error) {
 				}
 			}
 
-			c, err := medCli.WhoIs(playerOpt.StringValue())
+			c, err := whoisCli.WhoIs(playerOpt.StringValue())
 			if err != nil {
 				log.Printf("Error: %v", err)
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -70,6 +86,34 @@ func Start(medCli mediviaCli) (*discordgo.Session, error) {
 					Content: data.String(),
 				},
 			})
+		},
+		"kill-list": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var playerOpt *discordgo.ApplicationCommandInteractionDataOption
+			for _, opt := range i.ApplicationCommandData().Options {
+				if opt.Name == "player-name" {
+					playerOpt = opt
+					break
+				}
+			}
+
+			c, err := killList.KillList(playerOpt.StringValue())
+			if err != nil {
+				log.Printf("Error: %v", err)
+				return
+			}
+
+			var data strings.Builder
+			data.Write([]byte("```"))
+			data.Write([]byte(strings.Join(c, "\n")))
+			data.Write([]byte("```"))
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: data.String(),
+				},
+			})
+
 		},
 	}
 

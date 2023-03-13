@@ -3,6 +3,7 @@ package medivia
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/net/html"
@@ -35,16 +36,7 @@ func (m *Medivia) WhoIs(n string) (*Character, error) {
 		if tt == html.StartTagToken {
 			token := tkr.Token()
 
-			check := func(attrs []html.Attribute, class string) bool {
-				for _, attr := range attrs {
-					if attr.Val == class {
-						return true
-					}
-				}
-				return false
-			}
-
-			if token.Data == "div" && check(token.Attr, "med-width-50") {
+			if token.Data == "div" && checkClass(token.Attr, "med-width-50") {
 				tt = tkr.Next()
 				token := tkr.Token()
 				if tt == html.TextToken {
@@ -67,7 +59,7 @@ func (m *Medivia) WhoIs(n string) (*Character, error) {
 				}
 			}
 
-			if token.Data == "div" && check(token.Attr, "med-footer-ivy") {
+			if token.Data == "div" && checkClass(token.Attr, "med-footer-ivy") {
 				break
 			}
 			if tt == html.ErrorToken {
@@ -81,6 +73,62 @@ func (m *Medivia) WhoIs(n string) (*Character, error) {
 		return nil, fmt.Errorf("player not found")
 	}
 	return &c, nil
+}
+
+type KillList []string
+
+func (m *Medivia) KillList(n string) (KillList, error) {
+	resp, err := m.fetchCharacter(n)
+	if err != nil {
+		return nil, fmt.Errorf("fetch info unavailable")
+	}
+
+	var killList KillList
+	tkr := html.NewTokenizer(resp.Body)
+
+	for {
+		tt := tkr.Next()
+		if tt == html.StartTagToken {
+			token := tkr.Token()
+
+			if token.Data == "div" && checkClass(token.Attr, "title") {
+				tt = tkr.Next()
+				token = tkr.Token()
+				if tt == html.TextToken && token.Data == "Kill list" {
+					for {
+						if tt == html.TextToken && token.Data == "Task list" {
+							return killList, nil
+						}
+						tt = tkr.Next()
+						token = tkr.Token()
+						if checkClass(token.Attr, "med-width-75") {
+							tt = tkr.Next()
+							token = tkr.Token()
+							prefix := strings.TrimSpace(token.Data)
+							tt = tkr.Next()
+							tt = tkr.Next()
+							token = tkr.Token()
+							player := strings.TrimSpace(token.Data)
+							tt = tkr.Next()
+							tt = tkr.Next()
+							token = tkr.Token()
+							sufix := strings.TrimSpace(token.Data)
+							killList = append(killList, fmt.Sprintf("%v %v %v", prefix, player, sufix))
+						}
+					}
+				}
+				if tt == html.TextToken && token.Data == "Task list" {
+					break
+				}
+			}
+
+			if tt == html.ErrorToken {
+				fmt.Printf("problem %v", token.Data)
+				return nil, fmt.Errorf("reading tokens: %w", tkr.Err())
+			}
+		}
+	}
+	return nil, fmt.Errorf("player not found")
 }
 
 func (m *Medivia) fetchCharacter(n string) (*http.Response, error) {
@@ -107,4 +155,13 @@ func (m *Medivia) fetchCharacter(n string) (*http.Response, error) {
 	req.Header.Add("upgrade-insecure-requests", "1")
 	req.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36")
 	return m.httpCli.Do(req)
+}
+
+func checkClass(attrs []html.Attribute, class string) bool {
+	for _, attr := range attrs {
+		if attr.Val == class {
+			return true
+		}
+	}
+	return false
 }

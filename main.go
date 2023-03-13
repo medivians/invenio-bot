@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	cli, err := discord.Start(medivia.New())
+	mediviaCli := medivia.New()
+	cli, err := discord.Start(mediviaCli, mediviaCli)
 	if err != nil {
 		log.Fatalf("starting discord bot %q", err)
 	}
