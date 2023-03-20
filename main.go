@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 
@@ -16,6 +18,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("starting discord bot %q", err)
 	}
+
+	go healthCheck("80")
 	defer func() {
 		cli.Close()
 		log.Println("Stoping discord bot")
@@ -24,4 +28,15 @@ func main() {
 	signal.Notify(stop, os.Interrupt)
 	<-stop
 	log.Println("Graceful shutdown")
+}
+
+func healthCheck(port string) {
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "ok")
+	})
+
+	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
