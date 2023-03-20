@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/lramosduarte/god-sql/scraper/medivia"
+	"github.com/medivians/invenio-bot/scraper/medivia"
 )
 
 const token = "TOKEN_BOT"
