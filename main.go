@@ -5,9 +5,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/lramosduarte/god-sql/discord"
-	"github.com/lramosduarte/god-sql/scraper/medivia"
-	"github.com/lramosduarte/god-sql/scraper/wiki"
+	"github.com/medivians/invenio-bot/discord"
+	"github.com/medivians/invenio-bot/scraper/medivia"
+	"github.com/medivians/invenio-bot/scraper/wiki"
 )
 
 func main() {

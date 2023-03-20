@@ -1,0 +1,8 @@
+
+spec:
+ name: invenio-bot-app
+ services:
+ - name: web
+   git:
+     branch: main
+     repo_clone_url: https://github.com/medivians/invenio-bot.git
