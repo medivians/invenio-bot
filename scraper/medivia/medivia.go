@@ -43,7 +43,7 @@ func (m *Medivia) WhoIs(n string) (*Character, error) {
 					c.Informations = append(c.Informations, token.Data)
 				}
 				if tt == html.StartTagToken && token.Data == "span" {
-					tt = tkr.Next()
+					tkr.Next()
 					tt = tkr.Next()
 					token = tkr.Token()
 					if tt == html.TextToken {
@@ -80,7 +80,10 @@ type KillList []string
 func (m *Medivia) KillList(n string) (KillList, error) {
 	resp, err := m.fetchCharacter(n)
 	if err != nil {
-		return nil, fmt.Errorf("fetch info unavailable")
+		return nil, fmt.Errorf("fetch unavailable %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetch wrong status code %v", resp.StatusCode)
 	}
 
 	var killList KillList
@@ -102,14 +105,14 @@ func (m *Medivia) KillList(n string) (KillList, error) {
 						tt = tkr.Next()
 						token = tkr.Token()
 						if checkClass(token.Attr, "med-width-75") {
-							tt = tkr.Next()
+							tkr.Next()
 							token = tkr.Token()
 							prefix := strings.TrimSpace(token.Data)
-							tt = tkr.Next()
-							tt = tkr.Next()
+							tkr.Next()
+							tkr.Next()
 							token = tkr.Token()
 							player := strings.TrimSpace(token.Data)
-							tt = tkr.Next()
+							tkr.Next()
 							tt = tkr.Next()
 							token = tkr.Token()
 							sufix := strings.TrimSpace(token.Data)
@@ -141,19 +144,24 @@ func (m *Medivia) fetchCharacter(n string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Add("authority", "medivia.online")
-	req.Header.Add("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-	req.Header.Add("accept-language", "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7")
-	req.Header.Add("cache-control", "max-age=0")
-	req.Header.Add("cookie", "_ga=GA1.2.912253875.1677167453; medivia-cookie-info=read; _fbp=fb.1.1677358909786.355079940; _gid=GA1.2.859713168.1678200538; mmo=eyJpdiI6InQ2UVBJT3dSUHNtTW9ZV2x4VFJscmc9PSIsInZhbHVlIjoiT2FFdnFYcitCUFBzdmplUHNqU1RrcFFZNEdKb0ZsYTJhelI3K1M2aGJSNDJjVVF1UkVGWEtwVXd1TUJjcTBkcmF5a3dYQzgxeDZaajBrMy9rZmNxN2c9PSIsIm1hYyI6ImVmYTY0YjI4MTljMWYyYTExNTZkYjkwMzk1MTRhMjE4MmJhM2Q0MGNlNGViMWYxN2RjOTc1YTQzMDIyZmZmMDQiLCJ0YWciOiIifQ%3D%3D; cf_clearance=zOOrOz7OKbQO_0Xyv8HfOCcNt5oK5G5tit.vLeuuZyw-1678449709-0-150; XSRF-TOKEN=eyJpdiI6IkRVYklBdTM0bUtNRm1hcFdzSmsvd0E9PSIsInZhbHVlIjoiRW9Ec1dEZ3JOU0FYMTVTSGpaQkVSZW94aUJpSGNnUFZ3OHZZcmgyV3pLRlc3bmRrSXlHb0l1WFBHMWhMaG5sOUpUNTI4L2E4enJnQUtaMFU2ZFRnRjlqWC9MOFNGM0VDK3dOalV4NGhraWo4MEdKN3RJUlBlT1JqMjZKY3VUWkwiLCJtYWMiOiJiYWNkN2VjZGEwOTBjMDM3YzU4ZDA0YTc0Y2Y3NDk3MGIzZjk4ZWRjMjllZTI2NmNkYzg0M2NlOWFiY2M5YzAxIiwidGFnIjoiIn0%3D; medivia_session=eyJpdiI6IkZ0QkU3RmpERDVIcGhpSWdHd2JKYXc9PSIsInZhbHVlIjoiSVR6WjNpNjVpVC9ScU9uVkxuay8xV0xCU2R0VGhEdFdjMEtNM28wNjFNbFc4ZlU0c0M5NTJrS1pFWXFvYzFLSk9INDU3blJ5NzY2RkpxN1dBc1FJcUNHY013RUNQSDlmaTJIZ1hkdHp2YllHM2N3TE4xV1ZaMGZuUG5nR2twRnoiLCJtYWMiOiIyMDY4MTg5ZTA1OTRkYzFhNjA5Yzg1MmQyNGU1ODM1MDc1Njk4MWJhZjc4ODM5ZGUwNTQzYWJjNDk1YTdlOTllIiwidGFnIjoiIn0%3D")
-	req.Header.Add("dnt", "1")
+
+	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Add("Accept-Language", "en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7")
+	req.Header.Add("Cache-Control", "max-age=0")
+	req.Header.Add("Connection", "keep-alive")
+	req.Header.Add("Cookie", "cf_chl_2=368403408f9f7ad; cf_clearance=uOlfkJApuEudL3x7Cn1ndadglq80YzdJdN7mqiwks28-1679360241-0-150; _ga=GA1.2.2143851611.1679360238; _gid=GA1.2.2036756327.1679360238; XSRF-TOKEN=eyJpdiI6IjRRSk1wVFZ3R1lnNnhPaVgwdk1ONEE9PSIsInZhbHVlIjoiWWpaZHNPMXdoNUpYVXdRTy9WL0lGQkVXNzZhME5hZFhYY25hbEY0ZTRzM24zelVQZUppckNXNlBJTUwzdndkQnFtQTRnblRIb3ZxZU94b015TmlrbUhCbnhlU0xkSlJkVm5zR3Fab29KQmhqR0Fja3pweFhGVHRKRm9DSG5KUGEiLCJtYWMiOiI4NTYxNzU4ZmY2NmI4MjkzNmNkNTlmMTc5NzQyNjhjNmI1NDU1YWUxZGUxYTA0MjZiYTg4ODg3Y2MwZmJmNzczIiwidGFnIjoiIn0%3D; medivia_session=eyJpdiI6IkFOQm5hNTNZRjBhQVFibGhlVUd4R3c9PSIsInZhbHVlIjoiallBNDFKbzRMeHFjRjF1cFJBSVljdnFlTkQyRGhpYkd6SnhHU0Q2TkdGTkVta3ExeUlSZlZUNlVwYzFrNTlnK08zR3p3b0RTc1BvN2U0N2p2Ums5K1FyaThrcWtWRHFKT3Q5c0ovSXdSMjYzVjE2MXIxcWxXaklnaHAyNDdYN20iLCJtYWMiOiIyODBlN2E2MDE2OWYwYmQzYWNhOGI3NjAzOTVlNDcyMDk0NzljMTZlMGYwYjYxNjE5MTRiZjkwZTA3ZjEzMzVkIiwidGFnIjoiIn0%3D")
+	req.Header.Add("DNT", "1")
+	req.Header.Add("Pragma", "no-cache")
+	req.Header.Add("Referer", "https://medivia.online/community/character")
+	req.Header.Add("Sec-Fetch-Dest", "document")
+	req.Header.Add("Sec-Fetch-Mode", "navigate")
+	req.Header.Add("Sec-Fetch-Site", "same-origin")
+	req.Header.Add("Sec-Fetch-User", "?1")
+	req.Header.Add("Upgrade-Insecure-Requests", "1")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36")
+	req.Header.Add("sec-ch-ua", "Google Chrome;v=111, Not(A:Brand;v=8, Chromium;v=111")
 	req.Header.Add("sec-ch-ua-mobile", "?0")
 	req.Header.Add("sec-ch-ua-platform", "Windows")
-	req.Header.Add("sec-fetch-dest", "document")
-	req.Header.Add("sec-fetch-mode", "navigate")
-	req.Header.Add("sec-fetch-site", "none")
-	req.Header.Add("sec-fetch-user", "?1")
-	req.Header.Add("upgrade-insecure-requests", "1")
-	req.Header.Add("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36")
 	return m.httpCli.Do(req)
 }
 

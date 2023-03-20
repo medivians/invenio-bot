@@ -35,7 +35,7 @@ func healthCheck(port string) {
 		fmt.Fprintf(w, "ok")
 	})
 
-	err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%s", port), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
