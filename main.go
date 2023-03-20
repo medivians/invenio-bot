@@ -7,11 +7,12 @@ import (
 
 	"github.com/lramosduarte/god-sql/discord"
 	"github.com/lramosduarte/god-sql/scraper/medivia"
+	"github.com/lramosduarte/god-sql/scraper/wiki"
 )
 
 func main() {
 	mediviaCli := medivia.New()
-	cli, err := discord.Start(mediviaCli, mediviaCli)
+	cli, err := discord.Start(mediviaCli, mediviaCli, wiki.New())
 	if err != nil {
 		log.Fatalf("starting discord bot %q", err)
 	}

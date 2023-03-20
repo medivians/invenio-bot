@@ -8,6 +8,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/lramosduarte/god-sql/scraper/medivia"
+	"github.com/lramosduarte/god-sql/scraper/wiki"
 )
 
 const token = "TOKEN_BOT"
@@ -20,7 +21,11 @@ type killListCli interface {
 	KillList(n string) (medivia.KillList, error)
 }
 
-func Start(whoisCli whoisCli, killList killListCli) (*discordgo.Session, error) {
+type wikiCli interface {
+	WhereToSell(n string) wiki.Locations
+}
+
+func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo.Session, error) {
 	appCommands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "who-is",
@@ -30,6 +35,18 @@ func Start(whoisCli whoisCli, killList killListCli) (*discordgo.Session, error) 
 					Type:        discordgo.ApplicationCommandOptionString,
 					Name:        "player-name",
 					Description: "Player name",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "where-to-sell",
+			Description: "return a list of npc where you can sell an item",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "item-name",
+					Description: "Item name",
 					Required:    true,
 				},
 			},
@@ -77,6 +94,37 @@ func Start(whoisCli whoisCli, killList killListCli) (*discordgo.Session, error) 
 					continue
 				}
 				data.Write([]byte(fmt.Sprintf("%v %v \n", info, c.Informations[i+1])))
+			}
+			data.Write([]byte("```"))
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: data.String(),
+				},
+			})
+		},
+		"where-to-sell": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var itemOPT *discordgo.ApplicationCommandInteractionDataOption
+			for _, opt := range i.ApplicationCommandData().Options {
+				if opt.Name == "item-name" {
+					itemOPT = opt
+					break
+				}
+			}
+
+			locs := wikiCli.WhereToSell(itemOPT.StringValue())
+
+			var data strings.Builder
+			data.Write([]byte("```"))
+			if len(locs) == 0 {
+				data.Write([]byte("Not found"))
+			}
+			for i, info := range locs {
+				if i%2 != 0 {
+					continue
+				}
+				data.Write([]byte(fmt.Sprintf("%v %v \n", info, locs[i+1])))
 			}
 			data.Write([]byte("```"))
 
