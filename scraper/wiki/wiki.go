@@ -35,17 +35,17 @@ func (w *Wiki) WhereToSell(n string) Locations {
 		tt := tkr.Next()
 		token := tkr.Token()
 		if tt == html.TextToken && token.Data == "Sell to:" {
-			tt = tkr.Next()
-			tt = tkr.Next()
-			tt = tkr.Next()
-			tt = tkr.Next()
+			tkr.Next()
+			tkr.Next()
+			tkr.Next()
+			tkr.Next()
 			tt = tkr.Next()
 			for {
 				tt := tkr.Next()
 				token := tkr.Token()
 				if tt == html.StartTagToken && token.Data == "th" {
-					tt = tkr.Next()
-					tt = tkr.Next()
+					tkr.Next()
+					tkr.Next()
 					tt = tkr.Next()
 					token = tkr.Token()
 					locs = append(locs, token.Data)
@@ -70,7 +70,7 @@ func (w *Wiki) WhereToSell(n string) Locations {
 			}
 
 		}
-		if (tt == html.EndTagToken && token.Data == "table") || tt == html.ErrorToken {
+		if tt == html.ErrorToken {
 			break
 		}
 	}
