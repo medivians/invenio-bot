@@ -8,18 +8,18 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/medivians/invenio-bot/scraper/medivia"
+	"github.com/medivians/invenio-bot/scraper/mediviastats"
 	"github.com/medivians/invenio-bot/scraper/wiki"
 )
 
 const token = "TOKEN_BOT"
 
 type whoisCli interface {
-	WhoIs(n string) (*medivia.Character, error)
+	WhoIs(n string) mediviastats.Information
 }
 
 type killListCli interface {
-	KillList(n string) (medivia.KillList, error)
+	KillList(n string) mediviastats.KillList
 }
 
 type wikiCli interface {
@@ -76,9 +76,8 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 				}
 			}
 
-			c, err := whoisCli.WhoIs(playerOpt.StringValue())
-			if err != nil {
-				log.Printf("Error: %v", err)
+			informations := whoisCli.WhoIs(playerOpt.StringValue())
+			if len(informations) == 0 {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -90,11 +89,11 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 
 			var data strings.Builder
 			data.Write([]byte("```"))
-			for i, info := range c.Informations {
-				if i%2 != 0 {
+			for i, info := range informations {
+				if i%2 != 0 || i == len(informations)-1 {
 					continue
 				}
-				data.Write([]byte(fmt.Sprintf("%v %v \n", info, c.Informations[i+1])))
+				data.Write([]byte(fmt.Sprintf("%v %v \n", info, informations[i+1])))
 			}
 			data.Write([]byte("```"))
 
@@ -145,9 +144,14 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 				}
 			}
 
-			c, err := killList.KillList(playerOpt.StringValue())
-			if err != nil {
-				log.Printf("Error: %v", err)
+			c := killList.KillList(playerOpt.StringValue())
+			if len(c) == 0 {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Nothing was found!",
+					},
+				})
 				return
 			}
 
