@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"golang.org/x/net/html"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Wiki struct {
@@ -90,5 +92,20 @@ func (w *Wiki) fetchItem(n string) (*http.Response, error) {
 }
 
 func cleanName(n string) string {
-	return strings.ReplaceAll(strings.Title(n), " ", "_")
+	var articlesAndPrepositions = map[string]struct{}{"the": {}, "of": {}}
+
+	partials := strings.Split(n, " ")
+	var cleanedName string
+	for i, partialName := range partials {
+		if i == 0 {
+			cleanedName += cases.Title(language.English).String(partialName)
+			continue
+		}
+		if _, ok := articlesAndPrepositions[partialName]; ok {
+			cleanedName += "_" + cases.Lower(language.English).String(partialName)
+			continue
+		}
+		cleanedName += "_" + cases.Title(language.English).String(partialName)
+	}
+	return cleanedName
 }
