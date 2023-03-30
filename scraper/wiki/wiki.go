@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"golang.org/x/net/html"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type Wiki struct {
@@ -98,14 +96,14 @@ func cleanName(n string) string {
 	var cleanedName string
 	for i, partialName := range partials {
 		if i == 0 {
-			cleanedName += cases.Title(language.English).String(partialName)
+			cleanedName += strings.Title(partialName)
 			continue
 		}
 		if _, ok := articlesAndPrepositions[partialName]; ok {
-			cleanedName += "_" + cases.Lower(language.English).String(partialName)
+			cleanedName += "_" + strings.ToLower(partialName)
 			continue
 		}
-		cleanedName += "_" + cases.Title(language.English).String(partialName)
+		cleanedName += "_" + strings.Title(partialName)
 	}
 	return cleanedName
 }
