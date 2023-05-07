@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -13,6 +14,9 @@ import (
 )
 
 const token = "TOKEN_BOT"
+
+// Discord size limit to reveice messages
+const discordCharactersLimit = 2000
 
 type whoisCli interface {
 	WhoIs(p string) (*medivia.WhoIs, error)
@@ -175,22 +179,25 @@ func Start(whoisCli whoisCli, pk pkService, wikiCli wikiCli) (*discordgo.Session
 			}
 
 			var data strings.Builder
+			var rc int
 			data.Write([]byte("```"))
-			for i, k := range kl {
-				if i > 0 {
-					data.WriteString("\n")
+			for _, k := range kl {
+				ln := fmt.Sprintf("\n%s", k)
+				rc += utf8.RuneCountInString(ln)
+				if rc > discordCharactersLimit {
+					break
 				}
-				data.WriteString(fmt.Sprintf("%s", k))
+				data.WriteString(ln)
 			}
 			data.Write([]byte("```"))
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
 				Data: &discordgo.InteractionResponseData{
+					Title:   playerOpt.StringValue(),
 					Content: data.String(),
 				},
 			})
-
 		},
 		"death-list": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			var playerOpt *discordgo.ApplicationCommandInteractionDataOption
