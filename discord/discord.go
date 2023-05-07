@@ -8,25 +8,26 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/medivians/invenio-bot/scraper/mediviastats"
+	"github.com/medivians/invenio-bot/scraper/medivia"
 	"github.com/medivians/invenio-bot/scraper/wiki"
 )
 
 const token = "TOKEN_BOT"
 
 type whoisCli interface {
-	WhoIs(n string) mediviastats.Information
+	WhoIs(p string) (*medivia.WhoIs, error)
 }
 
-type killListCli interface {
-	KillList(n string) mediviastats.KillList
+type pkService interface {
+	Kills(p string) ([]*medivia.Kill, error)
+	Deaths(p string) ([]*medivia.Death, error)
 }
 
 type wikiCli interface {
 	WhereToSell(n string) wiki.Locations
 }
 
-func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo.Session, error) {
+func Start(whoisCli whoisCli, pk pkService, wikiCli wikiCli) (*discordgo.Session, error) {
 	appCommands := []*discordgo.ApplicationCommand{
 		{
 			Name:        "who-is",
@@ -64,6 +65,18 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 				},
 			},
 		},
+		{
+			Name:        "death-list",
+			Description: "returns list of deaths of the given player",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "player-name",
+					Description: "Player name",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	commandHandlers := map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -76,8 +89,8 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 				}
 			}
 
-			informations := whoisCli.WhoIs(playerOpt.StringValue())
-			if len(informations) == 0 {
+			whois, err := whoisCli.WhoIs(playerOpt.StringValue())
+			if err != nil || whois == nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
@@ -89,12 +102,7 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 
 			var data strings.Builder
 			data.Write([]byte("```"))
-			for i, info := range informations {
-				if i%2 != 0 || i == len(informations)-1 {
-					continue
-				}
-				data.Write([]byte(fmt.Sprintf("%v %v \n", info, informations[i+1])))
-			}
+			data.WriteString(fmt.Sprintf("%s", whois))
 			data.Write([]byte("```"))
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -144,20 +152,85 @@ func Start(whoisCli whoisCli, killList killListCli, wikiCli wikiCli) (*discordgo
 				}
 			}
 
-			c := killList.KillList(playerOpt.StringValue())
-			if len(c) == 0 {
+			kl, err := pk.Kills(playerOpt.StringValue())
+			if err != nil {
 				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 					Type: discordgo.InteractionResponseChannelMessageWithSource,
 					Data: &discordgo.InteractionResponseData{
-						Content: "Nothing was found!",
+						Content: "Player not found!",
 					},
 				})
 				return
 			}
+			if len(kl) == 0 {
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Nothing was found!",
+						},
+					})
+					return
+				}
+			}
 
 			var data strings.Builder
 			data.Write([]byte("```"))
-			data.Write([]byte(strings.Join(c, "\n")))
+			for i, k := range kl {
+				if i > 0 {
+					data.WriteString("\n")
+				}
+				data.WriteString(fmt.Sprintf("%s", k))
+			}
+			data.Write([]byte("```"))
+
+			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: data.String(),
+				},
+			})
+
+		},
+		"death-list": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			var playerOpt *discordgo.ApplicationCommandInteractionDataOption
+			for _, opt := range i.ApplicationCommandData().Options {
+				if opt.Name == "player-name" {
+					playerOpt = opt
+					break
+				}
+			}
+
+			deaths, err := pk.Deaths(playerOpt.StringValue())
+			if err != nil {
+				s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+					Type: discordgo.InteractionResponseChannelMessageWithSource,
+					Data: &discordgo.InteractionResponseData{
+						Content: "Player not found!",
+					},
+				})
+				return
+			}
+			if len(deaths) == 0 {
+				if err != nil {
+					s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+						Type: discordgo.InteractionResponseChannelMessageWithSource,
+						Data: &discordgo.InteractionResponseData{
+							Content: "Nothing was found!",
+						},
+					})
+					return
+				}
+			}
+
+			var data strings.Builder
+			data.Write([]byte("```"))
+			for i, d := range deaths {
+				if i > 0 {
+					data.WriteString("\n")
+				}
+				data.WriteString(fmt.Sprintf("%s", d))
+			}
 			data.Write([]byte("```"))
 
 			s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

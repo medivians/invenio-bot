@@ -8,12 +8,12 @@ import (
 	"os/signal"
 
 	"github.com/medivians/invenio-bot/discord"
-	"github.com/medivians/invenio-bot/scraper/mediviastats"
+	"github.com/medivians/invenio-bot/scraper/medivia"
 	"github.com/medivians/invenio-bot/scraper/wiki"
 )
 
 func main() {
-	mediviaCli := mediviastats.New()
+	mediviaCli := medivia.New()
 	cli, err := discord.Start(mediviaCli, mediviaCli, wiki.New())
 	if err != nil {
 		log.Fatalf("starting discord bot %q", err)
